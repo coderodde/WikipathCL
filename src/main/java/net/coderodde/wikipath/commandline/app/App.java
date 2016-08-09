@@ -3,9 +3,9 @@ package net.coderodde.wikipath.commandline.app;
 import java.io.File;
 import java.util.List;
 import net.coderodde.graph.pathfinding.uniform.delayed.AbstractDelayedGraphPathFinder;
-import net.coderodde.graph.pathfinding.uniform.delayed.AbstractNodeExpander;
 import net.coderodde.graph.pathfinding.uniform.delayed.support.ThreadPoolBidirectionalPathFinder;
 import static net.coderodde.wikipath.commandline.app.Miscellanea.bar;
+import static net.coderodde.wikipath.commandline.app.Miscellanea.nth;
 import static net.coderodde.wikipath.commandline.app.Miscellanea.parseInt;
 import net.coderodde.wikipedia.graph.expansion.AbstractWikipediaGraphNodeExpander;
 import net.coderodde.wikipedia.graph.expansion.BackwardWikipediaGraphNodeExpander;
@@ -175,31 +175,46 @@ public class App {
         
         final AbstractDelayedGraphPathFinder<String> finder =
                 new ThreadPoolBidirectionalPathFinder<>(
-                        threadCount / 2,
+                        threadCount,
                         masterThreadSleepDuration,
                         slaveThreadSleepDuration,
                         maximumThreadSleepTrials);
         
-        final List<String> path = 
-                finder.search(source, 
-                              target, 
-                              forwardSearchNodeExpander, 
-                              backwardSearchNodeExpander,
-                              performLogging ?
-                                      new ForwardSearchProgressLogger() :
-                                      null,
-                              performLogging ?
-                                      new BackwardSearchProgressLogger() :
-                                      null,
-                              null);
+        List<String> path = null;
+        
+        try {
+            path = finder.search(source, 
+                                 target, 
+                                 forwardSearchNodeExpander, 
+                                 backwardSearchNodeExpander,
+                                 performLogging ?
+                                        new ForwardSearchProgressLogger() :
+                                        null,
+                                 performLogging ?
+                                        new BackwardSearchProgressLogger() :
+                                        null,
+                                 null);
+        } catch (final Exception ex) {
+            System.err.println("[SEARCH ERROR] " + ex.getMessage());
+            System.exit(3);
+        }
         
         if (path.isEmpty()) {
-            System.out.println("[RESULT] The target node is not reachable " +
-                               "from the source node.");
+            System.out.println(
+                    "[RESULT] The target node is not reachable " +
+                    "from the source node.");
         } else {
             System.out.println("[RESULT] The shortest path is:");
             path.forEach(System.out::println);
         }
+        
+        finder.getDuration();
+
+//        System.out.printf("[RESULT] The search took %d milliseconds, " +
+//                          "expanding %d node%s.\n", 
+//                          nth(finder.getNumberOfExpandedNodes()),
+//                          finder.getDuration(),
+//                          finder.getNumberOfExpandedNodes());
     }
     
     private static void 
@@ -276,6 +291,11 @@ public class App {
         return options;
     }
     
+    /**
+     * Returns the name of the JAR file that is running this program.
+     * 
+     * @return the file name of a JAR file.
+     */
     private static String getThisJARFileName() {
         return new File(App.class.getProtectionDomain()
                            .getCodeSource()
