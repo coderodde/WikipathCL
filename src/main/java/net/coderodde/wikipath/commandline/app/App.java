@@ -208,13 +208,11 @@ public class App {
             path.forEach(System.out::println);
         }
         
-        finder.getDuration();
-
-//        System.out.printf("[RESULT] The search took %d milliseconds, " +
-//                          "expanding %d node%s.\n", 
-//                          nth(finder.getNumberOfExpandedNodes()),
-//                          finder.getDuration(),
-//                          finder.getNumberOfExpandedNodes());
+        System.out.printf("[RESULT] The search took %d milliseconds, " +
+                          "expanding %d node%s.\n", 
+                          finder.getDuration(),
+                          finder.getNumberOfExpandedNodes(),
+                          nth(finder.getNumberOfExpandedNodes()));
     }
     
     private static void 
