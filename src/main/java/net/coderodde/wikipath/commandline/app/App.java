@@ -96,6 +96,7 @@ public class App {
         }
         
         boolean performLogging        = false;
+        boolean printStatistics       = false;
         int threadCount               = DEFAULT_THREAD_COUNT;
         int maximumThreadSleepTrials  = 10;
         int masterThreadSleepDuration = 100;
@@ -103,6 +104,10 @@ public class App {
         
         if (commandLine.hasOption("l")) {
             performLogging = true;
+        }
+        
+        if (commandLine.hasOption("stat")) {
+            printStatistics = true;
         }
         
         if (commandLine.hasOption("t")) {
@@ -182,17 +187,23 @@ public class App {
         
         List<String> path = null;
         
+        final ForwardSearchProgressLogger forwardSearchProgressLogger =
+                performLogging || printStatistics ?
+                new ForwardSearchProgressLogger() :
+                null;
+        
+        final BackwardSearchProgressLogger backwardSearchProgressLogger = 
+                performLogging || printStatistics ?
+                new BackwardSearchProgressLogger() : 
+                null;
+        
         try {
             path = finder.search(source, 
                                  target, 
                                  forwardSearchNodeExpander, 
                                  backwardSearchNodeExpander,
-                                 performLogging ?
-                                        new ForwardSearchProgressLogger() :
-                                        null,
-                                 performLogging ?
-                                        new BackwardSearchProgressLogger() :
-                                        null,
+                                 forwardSearchProgressLogger,
+                                 backwardSearchProgressLogger,
                                  null);
         } catch (final Exception ex) {
             System.err.println("[SEARCH ERROR] " + ex.getMessage());
@@ -213,6 +224,42 @@ public class App {
                           finder.getDuration(),
                           finder.getNumberOfExpandedNodes(),
                           nth(finder.getNumberOfExpandedNodes()));
+        
+        if (printStatistics) {
+            printSearchStatistics(forwardSearchProgressLogger,
+                                  backwardSearchProgressLogger);
+        }
+    }
+    
+    private static void printSearchStatistics(
+            final ForwardSearchProgressLogger forwardSearchProgressLogger,
+            final BackwardSearchProgressLogger backwardSearchProgressLogger) {
+        System.out.println("--- Forward search statistics ---");
+        System.out.println("Expanded: " + 
+                forwardSearchProgressLogger.getNumberOfExpandedNodes());
+        System.out.println("Generated: " +
+                forwardSearchProgressLogger.getNumberOfGeneratedNeighbours());
+        System.out.println("Improved: " +
+                forwardSearchProgressLogger.getNumberOfImprovedNeighbours());
+        
+        System.out.println("--- Backward search statistics ---");
+        System.out.println("Expanded: " + 
+                backwardSearchProgressLogger.getNumberOfExpandedNodes());
+        System.out.println("Generated: " +
+                backwardSearchProgressLogger.getNumberOfGeneratedNeighbours());
+        System.out.println("Improved: " +
+                backwardSearchProgressLogger.getNumberOfImprovedNeighbours());
+        
+        System.out.println("--- Total search statistics ---");
+        System.out.println("Expanded: " + 
+                (backwardSearchProgressLogger.getNumberOfExpandedNodes() +
+                  forwardSearchProgressLogger.getNumberOfExpandedNodes()));
+        System.out.println("Generated: " +
+                (backwardSearchProgressLogger.getNumberOfGeneratedNeighbours() +
+                 forwardSearchProgressLogger.getNumberOfGeneratedNeighbours()));
+        System.out.println("Improved: " +
+                (backwardSearchProgressLogger.getNumberOfImprovedNeighbours() +
+                  forwardSearchProgressLogger.getNumberOfImprovedNeighbours()));
     }
     
     private static void 
@@ -280,11 +327,18 @@ public class App {
                             "in milliseconds.")
                       .build();
         
+        final Option statisticsOption = 
+                Option.builder()
+                      .longOpt("stat")
+                      .desc("print search statistics.")
+                      .build();
+        
         options.addOption(loggingOption);
         options.addOption(threadCountOption);
         options.addOption(trialCountOption);
         options.addOption(masterSleepOption);
         options.addOption(slaveSleepOption);
+        options.addOption(statisticsOption);
         
         return options;
     }
